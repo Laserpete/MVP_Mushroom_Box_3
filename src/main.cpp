@@ -10,16 +10,18 @@
 #define VENTILATOR_PIN 10
 
 #define FOGGER_FAN_PWM_VAL 50
-#define VENTILATOR_FAN_PWM_VAL 50
+#define VENTILATOR_FAN_PWM_VAL 125
 #define RUN_INTERVAL 1
-#define HUMIDITY_HIGH_THRESHOLD 99
-#define HUMIDITY_LOW_THRESHOLD 90
+#define VENT_INTERVAL 900
+#define VENT_DURATION 30
+#define HUMIDITY_HIGH_THRESHOLD 85
+#define HUMIDITY_LOW_THRESHOLD 70
 
 SHTSensor sht(SHTSensor::SHT3X);
 
 float temperature, humidity = 0;
-uint32_t lastRunMillis = 0;
-bool runBool = false;
+uint32_t lastRunMillis, lastVentMillis = 0;
+bool runBool, ventBool = false;
 
 void setupPins() {
   pinMode(FOGGER_PIN, OUTPUT);
@@ -48,17 +50,38 @@ void humidify(bool go) {
   if (go) {
     digitalWrite(FOGGER_PIN, HIGH);
     analogWrite(FOGGER_FAN_PIN, FOGGER_FAN_PWM_VAL);
-    analogWrite(VENTILATOR_PIN, VENTILATOR_FAN_PWM_VAL);
+    // analogWrite(VENTILATOR_PIN, VENTILATOR_FAN_PWM_VAL);
     digitalWrite(BUILTIN_LED_PIN, HIGH);
+    Serial.println("Humidifier on");
   } else {
     digitalWrite(FOGGER_PIN, LOW);
     digitalWrite(FOGGER_FAN_PIN, LOW);
-    digitalWrite(VENTILATOR_PIN, LOW);
+    // digitalWrite(VENTILATOR_PIN, LOW);
     digitalWrite(BUILTIN_LED_PIN, LOW);
+    Serial.println("Humidifier off");
+  }
+}
+
+void vent(bool go) {
+  if (go) {
+    analogWrite(VENTILATOR_PIN, VENTILATOR_FAN_PWM_VAL);
+    Serial.println("Venting...");
+  } else {
+    digitalWrite(VENTILATOR_PIN, LOW);
+    Serial.println("Stopped venting");
   }
 }
 
 void loop() {
+  if (millis() >= lastVentMillis + ((long)VENT_INTERVAL * 1000)) {
+    vent(1);
+  }
+  if (millis() >= lastVentMillis + (((long)VENT_INTERVAL * 1000) +
+                                    ((long)VENT_DURATION * 1000))) {
+    vent(0);
+    lastVentMillis = millis();
+  }
+
   if (millis() >= lastRunMillis + (RUN_INTERVAL * 1000)) {
     lastRunMillis = millis();
     runBool = true;
@@ -79,22 +102,15 @@ void loop() {
     displayTempHum(temperature, humidity);
 
     if (humidity >= HUMIDITY_HIGH_THRESHOLD) {
-      Serial.println(F("Humidity reading too high, sensor heater on."));
-      // htu21d.setHeater(HTU21D_ON);
       humidify(0);
+      vent(1);
     } else if (humidity <= HUMIDITY_LOW_THRESHOLD) {
       humidify(1);
-      // htu21d.setHeater(HTU21D_OFF);
-
-      Serial.println(F("Humidifier on"));
-
-      Serial.println(F("Humidity reading acceptable, sensor heater off."));
+      vent(0);
     } else if (humidity >= HUMIDITY_LOW_THRESHOLD &&
                humidity <= HUMIDITY_HIGH_THRESHOLD) {
       humidify(0);
-      //  htu21d.setHeater(HTU21D_OFF);
-
-      Serial.println(F("Humidifier off"));
+      vent(0);
     } else {
       ;
     }
