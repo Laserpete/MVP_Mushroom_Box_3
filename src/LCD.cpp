@@ -24,11 +24,11 @@ void displayTempHum(float temp, float hum) {
   lcd.home();
   lcd.clear();
   lcd.print("Temp = ");
-  lcd.print(temp);
+  lcd.print((int)temp);
   lcd.print("C");
   lcd.setCursor(0, 1);
   lcd.print("Humd = ");
-  lcd.print(hum);
+  lcd.print((int)hum);
   lcd.print("%");
 }
 

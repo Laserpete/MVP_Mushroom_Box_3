@@ -92,9 +92,9 @@ void loop() {
       temperature = sht.getTemperature();
       humidity = sht.getHumidity();
       Serial.print(F("Temperature °C: \t\t"));
-      Serial.println(temperature);
+      Serial.println((int)temperature);
       Serial.print(F("Humidity %: \t\t\t"));
-      Serial.println(humidity);
+      Serial.println((int)humidity);
     } else {
       Serial.println("Error in SHT31 readSample()");
     }
